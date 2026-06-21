@@ -80,7 +80,7 @@ spec:
     spec:
       containers:
         - name: predictor
-          image: helios-predictor:v1.0.2
+          image: helios-predictor:v1.0.3
           imagePullPolicy: Never
           port:
             containerPort: 8080

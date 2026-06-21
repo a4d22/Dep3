@@ -83,7 +83,7 @@ spec:
           image: helios-predictor:v1.0.3
           imagePullPolicy: Never
           port:
-            containerPort: 8080
+            containerPort: 8000
           env:
             - name: APP_VERSION
               valueFrom:
@@ -111,7 +111,7 @@ spec:
   ports:
     - protocol: TCP
       port: 80
-      targetPort: 8080
+      targetPort: 8000
 
 ---
 
@@ -128,5 +128,5 @@ spec:
   ports:
     - protocol: TCP
       port: 80
-      targetPort: 8080
+      targetPort: 8000
       

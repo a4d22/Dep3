@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: predictor
-          image: helios-predictor:v1.0.0
+          image: helios-predictor:v1.0.1
           imagePullPolicy: Never # tells K8 to use locally loaded image rather than looking online for it
           ports:
             - containerPort: 8080

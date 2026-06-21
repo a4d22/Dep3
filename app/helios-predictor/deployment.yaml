@@ -19,6 +19,12 @@ spec:
           imagePullPolicy: Never # tells K8 to use locally loaded image rather than looking online for it
           ports:
             - containerPort: 8080
+          env:
+            - name: APP_VERSION
+              valueFrom:
+                configMapKeyRef:
+                  name: helios-config
+                  key: APP_VERSION
 
 ---
 # Create a service

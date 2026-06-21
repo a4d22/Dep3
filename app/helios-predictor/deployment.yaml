@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: helios-predictor
+  namespace: helios-dev
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: helios-predictor
+  template:
+    metadata:
+      labels:
+        app: helios-predictor
+    spec:
+      containers:
+        - name: predictor
+          image: helios-predictor:v1.0.0
+          imagePullPolicy: Never # tells K8 to use locally loaded image rather than looking online for it
+          ports:
+            - containerPort: 8080
+
+---
+# Create a service
+apiVersion: v1
+kind: Service
+metadata:
+  name: helios-predictor-service
+  namespace: helios-dev
+spec:
+  selector:
+    app: helios-predictor
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
+  type: ClusterIP

@@ -1,5 +1,70 @@
-apiVersion: apps/v1
-kind: Deployment
+# 🛠️ Level 2: Question 2 — Migrating from Deployment to Rollout (Blue/Green)
+# Now that the controller is alive, we are going to write our very first Argo Rollout YAML script. We will start with a Blue/Green deployment strategy.
+
+# Concept Primer: Blue/Green Architecture
+# In a Blue/Green architecture, you maintain two separate versions of your application environments simultaneously:
+
+# Blue (Active): The current live production version handling 100% of user traffic.
+
+# Green (Preview): The brand new version you want to deploy.
+
+# When you push a code change, Argo Rollouts spins up the Green pods completely in the background. Traffic doesn't change yet. This gives you time to run tests against the Green environment. Once you are satisfied, you or an automated trigger tells Argo to instantly flip the virtual switch (the Kubernetes Service), routing all production users to Green. Green becomes the new Blue, and the old pods are cleanly shut down after a safety cooldown window.
+
+# Syntax Blueprint
+# A Rollout manifest looks almost identical to a standard Deployment manifest, with three key differences:
+
+# apiVersion changes to argoproj.io/v1alpha1
+
+# kind changes to Rollout
+
+# A spec.strategy block replaces the old deployment strategy block.
+
+# YAML
+# apiVersion: argoproj.io/v1alpha1
+# kind: Rollout
+# metadata:
+#   name: helios-predictor
+#   namespace: helios-dev
+# spec:
+#   replicas: 2
+#   selector:
+#     matchLabels:
+#       app: helios-predictor
+#   template:
+#     metadata:
+#       labels:
+#         app: helios-predictor
+#     spec:
+#       containers:
+#       - name: predictor
+#         image: helios-predictor:v1.0.1
+#         # ... rest of container settings (ports, env, etc.)
+#   strategy:
+#     blueGreen:
+#       activeService: helios-predictor-active-service     # Sends live traffic here
+#       previewService: helios-predictor-preview-service   # Sends test/staging traffic here
+#       autoPromotionEnabled: false                        # Tells Argo to PAUSE and wait for your approval before switching traffic!
+# Gotchas to Watch Out For: The Two-Service Requirement
+# For a Blue/Green rollout to function, you must define two separate Kubernetes Services in your YAML manifests—one for the active endpoint and one for the preview endpoint. If you forget to create one of these services, the Argo Rollouts controller will enter a degraded state because it doesn't have the network handles required to split the traffic.
+
+# ❓ Question 2: Your First Rollout Script
+# Let's convert your Python infrastructure into a Blue/Green engine.
+
+# Your Task:
+# Write a completely combined YAML script (you can separate resources using ---) that contains:
+
+# An Argo Rollout named helios-predictor targeting your helios-predictor:v1.0.1 image, utilizing the blueGreen strategy blueprint shown above (with autoPromotionEnabled: false). Make sure it keeps your environment variable mapping to the ConfigMap from Level 1!
+
+# The Active Service named helios-predictor-active-service.
+
+# The Preview Service named helios-predictor-preview-service.
+
+# (Note: Both services should have the exact same selector app: helios-predictor and route traffic to port 8080. Argo Rollouts will dynamically modify their internal selectors at runtime to manage the traffic split!)
+
+
+
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
 metadata:
   name: helios-predictor
   namespace: helios-dev
@@ -15,29 +80,53 @@ spec:
     spec:
       containers:
         - name: predictor
-          image: helios-predictor:v1.0.1
-          imagePullPolicy: Never # tells K8 to use locally loaded image rather than looking online for it
-          ports:
-            - containerPort: 8080
+          image: helios-predictor:v1.0.2
+          imagePullPolicy: Never
+          port:
+            containerPort: 8080
           env:
             - name: APP_VERSION
               valueFrom:
                 configMapKeyRef:
                   name: helios-config
                   key: APP_VERSION
+  strategy:
+    blueGreen:
+      activeService: helios-predictor-active-service
+      previewService: helios-predictor-preview-service
+      autoPromotionEnabled: false
 
 ---
-# Create a service
+
+# CReate SErvice for Blue: helios-predictor-active-service
 apiVersion: v1
 kind: Service
 metadata:
-  name: helios-predictor-service
+  name: helios-predictor-active-service
   namespace: helios-dev
 spec:
+  type: ClusterIP
   selector:
     app: helios-predictor
   ports:
     - protocol: TCP
       port: 80
       targetPort: 8080
+
+---
+
+# CReate Service for Green: helios-predictor-preview-service
+apiVersion: v1
+kind: Service
+metadata:
+  name: helios-predictor-preview-service
+  namespace: helios-dev
+spec:
   type: ClusterIP
+  selector:
+    app: helios-predictor
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080
+      
